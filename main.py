@@ -61,29 +61,15 @@ class CNN:
         (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
 
     def training(self):
-        # первый и последний шаги
-        # if self.train_model:
-        #    start_step = model.get_start_step(self.weight_dir)
-        #    end_step = len(self.trainX)
-        #    len_dataset = 10  # частота вывода print и сохранения весов (не менять при возобновлении обучения)
-        # else:
         start_step = 0
         end_step = len(self.trainX)
-        len_dataset = 50
+        len_dataset = 50  # частота вывода информации об обучении
 
-        # self.load_weights()
-
-        # if self.train_model:
-        #    self.loss_change = model.get_saved('loss_change', self.weight_dir)
-        #    self.accuracy_change = model.get_saved('accuracy_change', self.weight_dir)
-        # else:
         self.loss_change = []
         self.accuracy_change = []
 
         for step in range(start_step, end_step):
             # извлечение изображения из хранилища
-            # image_id = step % len(self.trainX)  # на каждом шаге обновляются веса для одного изображения
-            # print('до вывода результатов', str(round((step % len_dataset) * 100 / len_dataset)) + '%', end="\r")
             input_image = [self.trainX[step]]  # здесь лист, так как convolution_feed на
             # вход принимает лист, состоящий из feature maps
             y_true = self.trainY[step]
@@ -152,7 +138,7 @@ class CNN:
                 w_l_name='fc_w_2',
                 b_l=self.fc_b_2,
                 b_l_name='fc_b_2',
-                neurons=self.trainY.max(),  # количество нейронов на выходе моледи равно числу классов
+                neurons=np.max(self.trainY),  # количество нейронов на выходе моледи равно числу классов
                 act_fn=self.model_settings['fc_fn_2'],
                 dir_npy=self.weight_dir
             )
