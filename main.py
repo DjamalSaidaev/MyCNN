@@ -11,7 +11,7 @@ import make_data as md
 
 
 class CNN:
-    def __init__(self, train=False):
+    def __init__(self, train=True):
         self.train_model = train
 
         # параметры для первого слоя конволюции (начальные параметры будут инициализированы во время работы сети)
@@ -31,7 +31,8 @@ class CNN:
         self.loss_change = []
         self.accuracy_change = []
 
-        self.weight_dir = '/cnn_weights.npy'  # веса обученной сети
+        dirname = os.path.dirname(__file__)
+        self.weight_dir = os.path.join(dirname, 'cnn_weights.npy')
         self.trainX = []
         self.testX = []
         self.trainY = []
@@ -83,31 +84,31 @@ class CNN:
 
     def training(self):
         # первый и последний шаги
-        if self.train_model:
-            start_step = model.get_start_step(self.weight_dir)
-            end_step = len(self.trainX)
-            len_dataset = 10  # частота вывода print и сохранения весов (не менять при возобновлении обучения)
-        else:
-            start_step = 0
-            end_step = len(self.trainX)
-            len_dataset = 10
+        # if self.train_model:
+        #    start_step = model.get_start_step(self.weight_dir)
+        #    end_step = len(self.trainX)
+        #    len_dataset = 10  # частота вывода print и сохранения весов (не менять при возобновлении обучения)
+        # else:
+        start_step = 0
+        end_step = len(self.trainX)
+        len_dataset = 50
 
         # self.load_weights()
 
-        if self.train_model:
-            self.loss_change = model.get_saved('loss_change', self.weight_dir)
-            self.accuracy_change = model.get_saved('accuracy_change', self.weight_dir)
-        else:
-            self.loss_change = []
-            self.accuracy_change = []
+        # if self.train_model:
+        #    self.loss_change = model.get_saved('loss_change', self.weight_dir)
+        #    self.accuracy_change = model.get_saved('accuracy_change', self.weight_dir)
+        # else:
+        self.loss_change = []
+        self.accuracy_change = []
 
         for step in range(start_step, end_step):
             # извлечение изображения из хранилища
-            image_id = step % len(self.trainX)  # на каждом шаге обновляются веса для одного изображения
-            print('до вывода результатов', str(round((step % len_dataset) * 100 / len_dataset)) + '%', end="\r")
-            input_image = [self.trainX[image_id]]  # здесь лист, так как convolution_feed на
+            # image_id = step % len(self.trainX)  # на каждом шаге обновляются веса для одного изображения
+            # print('до вывода результатов', str(round((step % len_dataset) * 100 / len_dataset)) + '%', end="\r")
+            input_image = [self.trainX[step]]  # здесь лист, так как convolution_feed на
             # вход принимает лист, состоящий из feature maps
-            y_true = self.testY[image_id]
+            y_true = self.trainY[step]
             # прямое прохожение сети
             # первый конволюционный слой
             conv_y_1, conv_w_1, conv_b_1 = model.convolution_feed(
@@ -181,7 +182,7 @@ class CNN:
             fc_error = model.loss_fn(y_true, fc_y_2, feed=True)
             # сохранение значений loss и accuracy
             self.loss_change.append(fc_error.sum())
-            self.accuracy_change.append(y_true.argmax() == fc_y_2.argmax())
+            self.accuracy_change.append(y_true == fc_y_2.argmax() + 1)
             # обратное прохожение по сети
             if self.train_model:
                 # backprop через loss-функцию
@@ -251,28 +252,29 @@ class CNN:
                 )
             # вывод результатов
             if len(self.loss_change) % len_dataset == 0:
-                print('шаг:', len(self.loss_change), 'loss:', sum(self.loss_change[-len_dataset:]) / len_dataset, 'accuracy:',
-                      sum(self.accuracy_change[-len_dataset:]) / len_dataset)
+                print('шаг:', len(self.loss_change), 'loss:', sum(self.loss_change[-len_dataset:]) / len_dataset,
+                      'accuracy:', sum(self.accuracy_change[-len_dataset:]) / len_dataset)
                 # сохранение весов
-                if self.train_model:
-                    np.save(self.weight_dir, {
-                        'step': step,
-                        'loss_change': self.loss_change,
-                        'accuracy_change': self.accuracy_change,
-                        'conv_w_1': conv_w_1,
-                        'conv_b_1': conv_b_1,
-                        'conv_w_2': conv_w_2,
-                        'conv_b_2': conv_b_2,
-                        'fc_w_1': fc_w_1,
-                        'fc_b_1': fc_b_1,
-                        'fc_w_2': fc_w_2,
-                        'fc_b_2': fc_b_2
-                    }
-                            )
+            if self.train_model:
+                np.save(self.weight_dir, {
+                    'step': step,
+                    'loss_change': self.loss_change,
+                    'accuracy_change': self.accuracy_change,
+                    'conv_w_1': conv_w_1,
+                    'conv_b_1': conv_b_1,
+                    'conv_w_2': conv_w_2,
+                    'conv_b_2': conv_b_2,
+                    'fc_w_1': fc_w_1,
+                    'fc_b_1': fc_b_1,
+                    'fc_w_2': fc_w_2,
+                    'fc_b_2': fc_b_2
+                }
+                        )
 
         if not self.train_model:
             print('test_loss:', sum(self.loss_change) / len(self.loss_change), 'test_accuracy:',
                   sum(self.accuracy_change) / len(self.accuracy_change))
+
 
 def main():
      network = CNN()

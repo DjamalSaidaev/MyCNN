@@ -197,12 +197,12 @@ def convolution_back_dEdy_l_minus_1(dEdx_l, w_l, y_l_minus_1_shape, conv_params)
 def conv_weights_init(shape, quantity, weights_name, dir_npy):
     try:
         weights_matrices = np.load(dir_npy).item().get(weights_name)
-        # print('веса для', weights_name, 'подгружены', len(weights_matrices)*weights_matrices[0].size)
+        print('веса для', weights_name, 'подгружены', len(weights_matrices)*weights_matrices[0].size)
     except:
         weights_matrices = []
         for i in range(quantity):
             weights_matrices.append(2 * np.random.random(shape) - 1)
-        # print('веса для', weights_name, 'созданы', len(weights_matrices)*weights_matrices[0].size)
+        print('веса для', weights_name, 'созданы', len(weights_matrices)*weights_matrices[0].size)
     return weights_matrices
 
 
@@ -236,7 +236,7 @@ def get_saved(list_name, dir_npy):
 def convolution_feed(y_l_minus_1, w_l, w_l_name, w_shape_l, b_l, b_l_name, feature_maps, act_fn, dir_npy, conv_params):
     x_l = []
     y_l = []
-    if len(w_l) == 0:
+    if w_l.size() == 0:
         # инициализация w_l (количество ядер свертки равно число входов умножить на количество выходов)
         w_l = conv_weights_init(shape=w_shape_l, quantity=feature_maps*len(y_l_minus_1),
                                 weights_name=w_l_name, dir_npy=dir_npy)
@@ -244,7 +244,7 @@ def convolution_feed(y_l_minus_1, w_l, w_l_name, w_shape_l, b_l, b_l_name, featu
         for j in range(i*feature_maps, (i + 1)*feature_maps):
             # для каждой y_l_minus_1 функция конволюции вызывается feature_maps раз для создания "промежуточных" x_l
             x_l.append(convolution_feed_x_l(y_l_minus_1=y_l_minus_1[i], w_l=w_l[j], conv_params=conv_params))
-    if len(b_l) == 0:
+    if b_l.size() == 0:
         # инициализация b_l (количество b_l равно числу выходов)
         b_l = conv_weights_init(shape=(1, 1), quantity=feature_maps, weights_name=b_l_name, dir_npy=dir_npy)
     x_l_final = []
