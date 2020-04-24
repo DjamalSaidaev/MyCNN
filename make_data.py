@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import os  # для работы с файлами на диске
 import random
@@ -11,11 +13,19 @@ random.seed(time.time())
 
 def train_test_split(x, y, percent):
     num = int(percent * len(x))
-    testx = x[:len(x) - num]
-    testy = y[:len(y) - num]
-    trainx = x[len(x) - num:]
-    trainy = y[len(y) - num:]
+    trainx = x[:len(x) - num]
+    trainy = y[:len(y) - num]
+    testx = x[len(x) - num:]
+    testy = y[len(y) - num:]
     return np.array(trainx), np.array(testx), np.array(trainy), np.array(testy)
+
+
+def load_image(str):
+    image = cv.imread(str)
+    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    gray = np.array(gray, dtype="float")
+    gray /= 255.0
+    return gray
 
 
 def read_data_sets():

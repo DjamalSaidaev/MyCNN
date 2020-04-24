@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 
 
@@ -27,16 +29,16 @@ def convolution_feed_x_l(y_l_minus_1, w_l, conv_params):
     indexes_a, indexes_b = create_indexes(size_axis=w_l.shape, center_w_l=conv_params['center_w_l'])
     stride = conv_params['stride']
     # матрица выхода будет расширяться по мере добавления новых элементов
-    x_l = np.zeros((1,1))
+    x_l = np.zeros((1, 1))
     # в зависимости от типа операции меняется основная формула функции
     if conv_params['convolution']:
-        g = 1 # операция конволюции
+        g = 1  # операция конволюции
     else:
-        g = -1 # операция корреляции
-    # итерация по i и j входной матрицы y_l_minus_1 из предположения, что размерность выходной матрицы x_l будет такой же
+        g = -1  # операция корреляции
+    # итерация по i и j входной матрицы y_l_minus_1 из предположения,
+    # что размерность выходной матрицы x_l будет такой же
     for i in range(y_l_minus_1.shape[0]):
         for j in range(y_l_minus_1.shape[1]):
-            demo = np.zeros([y_l_minus_1.shape[0], y_l_minus_1.shape[1]]) # матрица для демонстрации конволюции
             result = 0
             element_exists = False
             for a in indexes_a:
@@ -44,8 +46,8 @@ def convolution_feed_x_l(y_l_minus_1, w_l, conv_params):
                     # проверка, чтобы значения индексов не выходили за границы
                     if i*stride - g*a >= 0 and j*stride - g*b >= 0 \
                     and i*stride - g*a < y_l_minus_1.shape[0] and j*stride - g*b < y_l_minus_1.shape[1]:
-                        result += y_l_minus_1[i*stride - g*a][j*stride - g*b] * w_l[indexes_a.index(a)][indexes_b.index(b)] # перевод индексов в "нормальные" для извлечения элементов из матрицы w_l
-                        demo[i*stride - g*a][j*stride - g*b] = w_l[indexes_a.index(a)][indexes_b.index(b)]
+                        # перевод индексов в "нормальные" для извлечения элементов из матрицы w_l
+                        result += y_l_minus_1[i*stride - g*a][j*stride - g*b] * w_l[indexes_a.index(a)][indexes_b.index(b)]
                         element_exists = True
             # запись полученных результатов только в том случае, если для данных i и j были произведены вычисления
             if element_exists:
@@ -54,10 +56,8 @@ def convolution_feed_x_l(y_l_minus_1, w_l, conv_params):
                     x_l = np.vstack((x_l, np.zeros(x_l.shape[1])))
                 if j >= x_l.shape[1]:
                     # добавление столбца, если не существует
-                    x_l = np.hstack((x_l, np.zeros((x_l.shape[0],1))))
+                    x_l = np.hstack((x_l, np.zeros((x_l.shape[0], 1))))
                 x_l[i][j] = result
-                # вывод матрицы demo для отслеживания хода свертки
-                # print('i=' + str(i) + '; j=' + str(j) + '\n', demo)
     return x_l
 
 
@@ -65,13 +65,14 @@ def maxpool(y_l, conv_params):
     indexes_a, indexes_b = create_indexes(size_axis=conv_params['window_shape'], center_w_l=conv_params['center_window'])
     stride = conv_params['stride']
     # выходные матрицы будут расширяться по мере добавления новых элементов
-    y_l_mp = np.zeros((1,1)) # матрица y_l после операции макспулинга
-    y_l_mp_to_y_l = np.zeros((1,1), dtype='<U32') # матрица для backprop через слой макспулинга (внутри матрицы будет храниться текст)
+    y_l_mp = np.zeros((1, 1))  # матрица y_l после операции макспулинга
+    y_l_mp_to_y_l = np.zeros((1, 1), dtype='<U32')  # матрица для backprop через слой макспулинга
+    # (внутри матрицы будет храниться текст)
     # в зависимости от типа операции меняется основная формула функции
     if conv_params['convolution']:
-        g = 1 # операция конволюции
+        g = 1  # операция конволюции
     else:
-        g = -1 # операция корреляции
+        g = -1  # операция корреляции
     # итерация по i и j входной матрицы y_l из предположения, что размерность выходной матрицы будет такой же
     for i in range(y_l.shape[0]):
         for j in range(y_l.shape[1]):
@@ -112,7 +113,8 @@ def maxpool_feed(y_l, conv_params):
         y_l_mp, y_l_mp_to_y_l = maxpool(y_l[i], conv_params)
         # выход функции, матрица y_l после прохождения операции макспулинга
         list_of_y_l_mp.append(y_l_mp)
-        # здесь хранятся координаты, которые позволят перевести "маленькую" матрицу dE/dy_l_mp к "большой" исходной матрице dE/dy_l
+        # здесь хранятся координаты, которые позволят перевести "маленькую" матрицу dE/dy_l_mp к
+        # "большой" исходной матрице dE/dy_l
         list_of_y_l_mp_to_y_l.append(y_l_mp_to_y_l)
     return list_of_y_l_mp, list_of_y_l_mp_to_y_l
 
@@ -131,7 +133,7 @@ def maxpool_back(dEdy_l_mp, y_l_mp_to_y_l, y_l_shape):
                 coordinate_col = int(coordinates[coordinates.find(',')+1:])
                 # запись по этим коордианатам в матрицу dEdy_l элемента из матрицы dEdy_l_mp
                 dEdy_l[coordinate_row][coordinate_col] = dEdy_l_mp[i][k][l]
-        list_of_dEdy_l.append(dEdy_l) # добавляем получившуюся dEdy_l в лист с остальными feature map
+        list_of_dEdy_l.append(dEdy_l)  # добавляем получившуюся dEdy_l в лист с остальными feature map
     return list_of_dEdy_l
 
 
@@ -141,13 +143,14 @@ def convolution_back_dEdw_l(y_l_minus_1, w_l_shape, dEdx_l, conv_params):
     dEdw_l = np.zeros((w_l_shape[0], w_l_shape[1]))
     # в зависимости от типа операции меняется основная формула функции
     if conv_params['convolution']:
-        g = 1 # операция конволюции
+        g = 1  # операция конволюции
     else:
-        g = -1 # операция корреляции
+        g = -1  # операция корреляции
     # итерация по a и b ядра свертки
     for a in indexes_a:
         for b in indexes_b:
-            # размерность матрицы для демонстрации конволюции равноа размерности y_l, так как эта матрица либо равна либо больше (в случае stride>1) матрицы x_l
+            # размерность матрицы для демонстрации конволюции равноа размерности y_l,
+            # так как эта матрица либо равна либо больше (в случае stride>1) матрицы x_l
             demo = np.zeros([y_l_minus_1.shape[0], y_l_minus_1.shape[1]])
             result = 0
             for i in range(dEdx_l.shape[0]):
@@ -157,9 +160,8 @@ def convolution_back_dEdw_l(y_l_minus_1, w_l_shape, dEdx_l, conv_params):
                     and i*stride - g*a < y_l_minus_1.shape[0] and j*stride - g*b < y_l_minus_1.shape[1]:
                         result += y_l_minus_1[i*stride - g*a][j*stride - g*b] * dEdx_l[i][j]
                         demo[i*stride - g*a][j*stride - g*b] = dEdx_l[i][j]
-            dEdw_l[indexes_a.index(a)][indexes_b.index(b)] = result # перевод индексов в "нормальные" для извлечения элементов из матрицы w_l
-            # вывод матрицы demo для отслеживания хода свертки
-            # print('a=' + str(a) + '; b=' + str(b) + '\n', demo)
+            dEdw_l[indexes_a.index(a)][indexes_b.index(b)] = result  # перевод индексов в "нормальные" для
+            # извлечения элементов из матрицы w_l
     return dEdw_l
 
 
@@ -169,9 +171,9 @@ def convolution_back_dEdy_l_minus_1(dEdx_l, w_l, y_l_minus_1_shape, conv_params)
     dEdy_l_minus_1 = np.zeros((y_l_minus_1_shape[0], y_l_minus_1_shape[1]))
     # в зависимости от типа операции меняется основная формула функции
     if conv_params['convolution']:
-        g = 1 # операция конволюции
+        g = 1  # операция конволюции
     else:
-        g = -1 # операция корреляции
+        g = -1  # операция корреляции
     for i in range(dEdy_l_minus_1.shape[0]):
         for j in range(dEdy_l_minus_1.shape[1]):
             result = 0

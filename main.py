@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import matplotlib.pyplot as plt  # для построения графиков
 from PIL import Image  # для работы с изображениями
@@ -60,7 +62,93 @@ class CNN:
     def load_data(self):
         (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
 
-    def training(self, epochs=25):
+    def load_model(self, path):
+        self.conv_w_1 = np.load(path).item().get('conv_w_1')
+        self.conv_b_1 = np.load(path).item().get('conv_b_1')
+
+        self.conv_w_2 = np.load(path).item().get('conv_w_2')
+        self.conv_b_2 = np.load(path).item().get('conv_b_2')
+
+        self.fc_w_1 = np.load(path).item().get('fc_w_1')
+        self.fc_b_1 = np.load(path).item().get('fc_b_1')
+
+        self.fc_w_2 = np.load(path).item().get('fc_w_2')
+        self.fc_b_2 = np.load(path).item().get('fc_b_2')
+
+    def predict(self, path):
+        img = md.load_image(path)
+        input_image = [img]  # здесь лист, так как convolution_feed на
+
+        conv_y_1, self.conv_w_1, self.conv_b_1 = model.convolution_feed(
+            y_l_minus_1=input_image,
+            w_l=self.conv_w_1,
+            w_l_name='conv_w_1',  # для подгрузки весов из файла
+            w_shape_l=self.model_settings['conv_shape_1'],
+            b_l=self.conv_b_1,
+            b_l_name='conv_b_1',
+            feature_maps=self.model_settings['conv_feature_1'],
+            act_fn=self.model_settings['conv_fn_1'],
+            dir_npy=self.weight_dir,
+            conv_params={
+                'convolution': self.model_settings['conv_conv_1'],
+                'stride': self.model_settings['conv_stride_1'],
+                'center_w_l': self.model_settings['conv_center_1']
+            }
+        )
+        # слой макспулинга
+        conv_y_1_mp, conv_y_1_mp_to_conv_y_1 = model.maxpool_feed(
+            y_l=conv_y_1,
+            conv_params={
+                'window_shape': self.model_settings['maxpool_shape_1'],
+                'convolution': self.model_settings['maxpool_conv_1'],
+                'stride': self.model_settings['maxpool_stride_1'],
+                'center_window': self.model_settings['maxpool_center_1']
+            }
+        )
+        # второй конволюционный слой
+        conv_y_2, self.conv_w_2, self.conv_b_2 = model.convolution_feed(
+            y_l_minus_1=conv_y_1_mp,
+            w_l=self.conv_w_2,
+            w_l_name='conv_w_2',
+            w_shape_l=self.model_settings['conv_shape_2'],
+            b_l=self.conv_b_2,
+            b_l_name='conv_b_2',
+            feature_maps=self.model_settings['conv_feature_2'],
+            act_fn=self.model_settings['conv_fn_2'],
+            dir_npy=self.weight_dir,
+            conv_params={
+                'convolution': self.model_settings['conv_conv_2'],
+                'stride': self.model_settings['conv_stride_2'],
+                'center_w_l': self.model_settings['conv_center_2']
+            }
+        )
+        # конвертация полученных feature maps в вектор
+        conv_y_2_vect = model.matrix2vector_tf(conv_y_2)
+        # первый слой fully connected сети
+        fc_y_1, self.fc_w_1, self.fc_b_1 = model.fc_multiplication(
+            y_l_minus_1=conv_y_2_vect,
+            w_l=self.fc_w_1,
+            w_l_name='fc_w_1',
+            b_l=self.fc_b_1,
+            b_l_name='fc_b_1',
+            neurons=self.model_settings['fc_neurons_1'],
+            act_fn=self.model_settings['fc_fn_1'],
+            dir_npy=self.weight_dir
+        )
+        # второй слой fully connected сети
+        fc_y_2, self.fc_w_2, self.fc_b_2 = model.fc_multiplication(
+            y_l_minus_1=fc_y_1,
+            w_l=self.fc_w_2,
+            w_l_name='fc_w_2',
+            b_l=self.fc_b_2,
+            b_l_name='fc_b_2',
+            neurons=4,  # количество нейронов на выходе моледи равно числу классов
+            act_fn=self.model_settings['fc_fn_2'],
+            dir_npy=self.weight_dir
+        )
+        return fc_y_2.argmax() + 1
+
+    def training(self, epochs=10):
         start_step = 0
         end_step = len(self.trainX)
         len_dataset = 50  # частота вывода информации об обучении
@@ -146,7 +234,7 @@ class CNN:
                 fc_error = model.loss_fn(y_true, fc_y_2, feed=True)
                 # сохранение значений loss и accuracy
                 self.loss_change.append(fc_error.sum())
-                self.accuracy_change.append(y_true == fc_y_2.argmax() + 1)
+                self.accuracy_change.append(y_true.argmax() == fc_y_2.argmax())
                 # обратное прохожение по сети
                 if self.train_model:
                     # backprop через loss-функцию
@@ -215,8 +303,9 @@ class CNN:
                         }
                     )
                 # вывод результатов
-                print('эпоха:', epoch, 'шаг:', len(self.loss_change), 'loss:', sum(self.loss_change[-len_dataset:]) / len_dataset,
-                      'accuracy:', sum(self.accuracy_change[-len_dataset:]) / len_dataset)
+                print('эпоха: {} шаг: {} loss: {:.3f} accuracy: {:.3f}'.format(
+                    epoch, step, sum(self.loss_change[-len_dataset:]) / len_dataset,
+                    sum(self.accuracy_change[-len_dataset:]) / len_dataset))
                 # сохранение весов
                 if self.train_model:
                     np.save(self.weight_dir, {'step': step,
@@ -238,8 +327,9 @@ class CNN:
 
 def main():
      network = CNN()
-     network.load_data()
-     network.training(35)
+     # network.load_data()
+     # network.training()
+     print(network.predict("r.jpg"))
 
 
 if __name__ == "__main__":
