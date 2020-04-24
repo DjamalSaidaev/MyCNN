@@ -31,8 +31,7 @@ class CNN:
         self.loss_change = []
         self.accuracy_change = []
 
-        dirname = os.path.dirname(__file__)
-        self.weight_dir = os.path.join(dirname, 'cnn_weights.npy')
+        self.weight_dir = os.path.join(os.path.dirname(__file__), 'cnn_weights.npy')
         self.trainX = []
         self.testX = []
         self.trainY = []
@@ -60,27 +59,6 @@ class CNN:
 
     def load_data(self):
         (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
-
-    '''
-    def load_weights(self):
-        if not os.path.isfile(self.weight_dir):
-            w1 = np.random.normal(scale=0.1, size=(2, 2, 1, 5))
-            w1 = np.reshape(w1, (w1.size,))
-            w1 = np.reshape(w1, (5, 2, 2), order='F')
-            for i in range(5):
-                self.conv_w_1.append(w1[i].T)
-            w3 = np.random.normal(scale=0.1, size=(3, 3, 5, 20))
-            w3 = np.reshape(w3, (w3.size,))
-            w3 = np.reshape(w3, (5 * 20, 3, 3), order='F')
-            for i in range(5 * 20):
-                self.conv_w_2.append(w3[i].T)
-            self.conv_b_1 = [0.1 for _ in range(5)]
-            self.conv_b_2 = [0.1 for _ in range(20)]
-            self.fc_w_1 = np.random.normal(scale=0.1, size=(7 * 7 * 20, 2000))
-            self.fc_b_1 = [0.1 for _ in range(2000)]
-            self.fc_w_2 = np.random.normal(scale=0.1, size=(2000, 10))
-            self.fc_b_2 = [0.1 for _ in range(10)]
-    '''
 
     def training(self):
         # первый и последний шаги
