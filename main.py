@@ -16,11 +16,11 @@ class CNN:
 
         # параметры для первого слоя конволюции (начальные параметры будут инициализированы во время работы сети)
         # веса для дообучения сети будут подгружены из файла
-        self.conv_w_1 = []
-        self.conv_b_1 = []
+        self.conv_w_1 = np.array([])
+        self.conv_b_1 = np.array([])
         # параметры для второго слоя конволюции
-        self.conv_w_2 = []
-        self.conv_b_2 = []
+        self.conv_w_2 = np.array([])
+        self.conv_b_2 = np.array([])
         # параметры для первого слоя fc-сети
         self.fc_w_1 = np.array([[]])
         self.fc_b_1 = np.array([[]])
@@ -251,26 +251,24 @@ class CNN:
                     }
                 )
             # вывод результатов
-            if len(self.loss_change) % len_dataset == 0:
-                print('шаг:', len(self.loss_change), 'loss:', sum(self.loss_change[-len_dataset:]) / len_dataset,
-                      'accuracy:', sum(self.accuracy_change[-len_dataset:]) / len_dataset)
-                # сохранение весов
+            print('шаг:', len(self.loss_change), 'loss:', sum(self.loss_change[-len_dataset:]) / len_dataset,
+                  'accuracy:', sum(self.accuracy_change[-len_dataset:]) / len_dataset)
+            # сохранение весов
             if self.train_model:
                 np.save(self.weight_dir, {
                     'step': step,
                     'loss_change': self.loss_change,
                     'accuracy_change': self.accuracy_change,
-                    'conv_w_1': conv_w_1,
-                    'conv_b_1': conv_b_1,
-                    'conv_w_2': conv_w_2,
-                    'conv_b_2': conv_b_2,
-                    'fc_w_1': fc_w_1,
-                    'fc_b_1': fc_b_1,
-                    'fc_w_2': fc_w_2,
-                    'fc_b_2': fc_b_2
+                    'conv_w_1': self.conv_w_1,
+                    'conv_b_1': self.conv_b_1,
+                    'conv_w_2': self.conv_w_2,
+                    'conv_b_2': self.conv_b_2,
+                    'fc_w_1': self.fc_w_1,
+                    'fc_b_1': self.fc_b_1,
+                    'fc_w_2': self.fc_w_2,
+                    'fc_b_2': self.fc_b_2
                 }
                         )
-
         if not self.train_model:
             print('test_loss:', sum(self.loss_change) / len(self.loss_change), 'test_accuracy:',
                   sum(self.accuracy_change) / len(self.accuracy_change))

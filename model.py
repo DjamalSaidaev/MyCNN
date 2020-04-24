@@ -236,7 +236,7 @@ def get_saved(list_name, dir_npy):
 def convolution_feed(y_l_minus_1, w_l, w_l_name, w_shape_l, b_l, b_l_name, feature_maps, act_fn, dir_npy, conv_params):
     x_l = []
     y_l = []
-    if w_l.size() == 0:
+    if w_l.size == 0:
         # инициализация w_l (количество ядер свертки равно число входов умножить на количество выходов)
         w_l = conv_weights_init(shape=w_shape_l, quantity=feature_maps*len(y_l_minus_1),
                                 weights_name=w_l_name, dir_npy=dir_npy)
@@ -244,7 +244,7 @@ def convolution_feed(y_l_minus_1, w_l, w_l_name, w_shape_l, b_l, b_l_name, featu
         for j in range(i*feature_maps, (i + 1)*feature_maps):
             # для каждой y_l_minus_1 функция конволюции вызывается feature_maps раз для создания "промежуточных" x_l
             x_l.append(convolution_feed_x_l(y_l_minus_1=y_l_minus_1[i], w_l=w_l[j], conv_params=conv_params))
-    if b_l.size() == 0:
+    if b_l.size == 0:
         # инициализация b_l (количество b_l равно числу выходов)
         b_l = conv_weights_init(shape=(1, 1), quantity=feature_maps, weights_name=b_l_name, dir_npy=dir_npy)
     x_l_final = []
