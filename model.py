@@ -1,12 +1,12 @@
 import numpy as np
 
 
-def shuffle_list(images_list, truth_list, dir_list):
-    list_storage = zip(images_list, truth_list, dir_list)
+def shuffle_list(images_list, truth_list):
+    list_storage = zip(images_list, truth_list)
     list_storage = list(list_storage)
     np.random.shuffle(list_storage)
-    images_list, truth_list, dir_list = zip(*list_storage) # https://stackoverflow.com/questions/12974474/how-to-unzip-a-list-of-tuples-into-individual-lists
-    return images_list, truth_list, dir_list
+    images_list, truth_list = zip(*list_storage)
+    return images_list, truth_list
 
 
 def create_axis_indexes(size_axis, center_w_l):
