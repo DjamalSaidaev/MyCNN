@@ -111,7 +111,7 @@ class CNN:
             y_true = self.trainY[step]
             # прямое прохожение сети
             # первый конволюционный слой
-            conv_y_1, conv_w_1, conv_b_1 = model.convolution_feed(
+            conv_y_1, self.conv_w_1, self.conv_b_1 = model.convolution_feed(
                 y_l_minus_1=input_image,
                 w_l=self.conv_w_1,
                 w_l_name='conv_w_1',  # для подгрузки весов из файла
@@ -138,7 +138,7 @@ class CNN:
                 }
             )
             # второй конволюционный слой
-            conv_y_2, conv_w_2, conv_b_2 = model.convolution_feed(
+            conv_y_2, self.conv_w_2, self.conv_b_2 = model.convolution_feed(
                 y_l_minus_1=conv_y_1_mp,
                 w_l=self.conv_w_2,
                 w_l_name='conv_w_2',
@@ -157,7 +157,7 @@ class CNN:
             # конвертация полученных feature maps в вектор
             conv_y_2_vect = model.matrix2vector_tf(conv_y_2)
             # первый слой fully connected сети
-            fc_y_1, fc_w_1, fc_b_1 = model.fc_multiplication(
+            fc_y_1, self.fc_w_1, self.fc_b_1 = model.fc_multiplication(
                 y_l_minus_1=conv_y_2_vect,
                 w_l=self.fc_w_1,
                 w_l_name='fc_w_1',
@@ -168,7 +168,7 @@ class CNN:
                 dir_npy=self.weight_dir
             )
             # второй слой fully connected сети
-            fc_y_2, fc_w_2, fc_b_2 = model.fc_multiplication(
+            fc_y_2, self.fc_w_2, self.fc_b_2 = model.fc_multiplication(
                 y_l_minus_1=fc_y_1,
                 w_l=self.fc_w_2,
                 w_l_name='fc_w_2',
@@ -188,22 +188,22 @@ class CNN:
                 # backprop через loss-функцию
                 dEdfc_y_2 = model.loss_fn(y_true, fc_y_2, feed=False)
                 # backprop через второй слой fc-сети
-                dEdfc_y_1, fc_w_2, fc_b_2 = model.fc_backpropagation(
+                dEdfc_y_1, self.fc_w_2, self.fc_b_2 = model.fc_backpropagation(
                     y_l_minus_1=fc_y_1,
                     dEdy_l=dEdfc_y_2,
                     y_l=fc_y_2,
-                    w_l=fc_w_2,
-                    b_l=fc_b_2,
+                    w_l=self.fc_w_2,
+                    b_l=self.fc_b_2,
                     act_fn=self.model_settings['fc_fn_2'],
                     alpha=self.model_settings['learning_rate']
                 )
                 # backprop через первый слой fc-сети
-                dEdfc_y_0, fc_w_1, fc_b_1 = model.fc_backpropagation(
+                dEdfc_y_0, self.fc_w_1, self.fc_b_1 = model.fc_backpropagation(
                     y_l_minus_1=conv_y_2_vect,
                     dEdy_l=dEdfc_y_1,
                     y_l=fc_y_1,
-                    w_l=fc_w_1,
-                    b_l=fc_b_1,
+                    w_l=self.fc_w_1,
+                    b_l=self.fc_b_1,
                     act_fn=self.model_settings['fc_fn_1'],
                     alpha=self.model_settings['learning_rate']
                 )
@@ -213,11 +213,11 @@ class CNN:
                     matrix_shape=conv_y_2[0].shape  # размерность одной из матриц feature map
                 )
                 # backprop через второй слой конволюции
-                dEdconv_y_1_mp, conv_w_2, conv_b_2 = model.convolution_backpropagation(
+                dEdconv_y_1_mp, self.conv_w_2, self.conv_b_2 = model.convolution_backpropagation(
                     y_l_minus_1=conv_y_1_mp,  # так как слой макспулинга!
                     y_l=conv_y_2,
-                    w_l=conv_w_2,
-                    b_l=conv_b_2,
+                    w_l=self.conv_w_2,
+                    b_l=self.conv_b_2,
                     dEdy_l=dEdconv_y_2,
                     feature_maps=self.model_settings['conv_feature_2'],
                     act_fn=self.model_settings['conv_fn_2'],
@@ -235,11 +235,11 @@ class CNN:
                     y_l_shape=conv_y_1[0].shape
                 )
                 # backprop через первый слой конволюции
-                dEdconv_y_0, conv_w_1, conv_b_1 = model.convolution_backpropagation(
+                dEdconv_y_0, self.conv_w_1, self.conv_b_1 = model.convolution_backpropagation(
                     y_l_minus_1=input_image,
                     y_l=conv_y_1,
-                    w_l=conv_w_1,
-                    b_l=conv_b_1,
+                    w_l=self.conv_w_1,
+                    b_l=self.conv_b_1,
                     dEdy_l=dEdconv_y_1,
                     feature_maps=self.model_settings['conv_feature_1'],
                     act_fn=self.model_settings['conv_fn_1'],
@@ -255,20 +255,18 @@ class CNN:
                   'accuracy:', sum(self.accuracy_change[-len_dataset:]) / len_dataset)
             # сохранение весов
             if self.train_model:
-                np.save(self.weight_dir, {
-                    'step': step,
-                    'loss_change': self.loss_change,
-                    'accuracy_change': self.accuracy_change,
-                    'conv_w_1': self.conv_w_1,
-                    'conv_b_1': self.conv_b_1,
-                    'conv_w_2': self.conv_w_2,
-                    'conv_b_2': self.conv_b_2,
-                    'fc_w_1': self.fc_w_1,
-                    'fc_b_1': self.fc_b_1,
-                    'fc_w_2': self.fc_w_2,
-                    'fc_b_2': self.fc_b_2
-                }
-                        )
+                np.save(self.weight_dir, {'step': step,
+                                          'loss_change': self.loss_change,
+                                          'accuracy_change': self.accuracy_change,
+                                          'conv_w_1': self.conv_w_1,
+                                          'conv_b_1': self.conv_b_1,
+                                          'conv_w_2': self.conv_w_2,
+                                          'conv_b_2': self.conv_b_2,
+                                          'fc_w_1': self.fc_w_1,
+                                          'fc_b_1': self.fc_b_1,
+                                          'fc_w_2': self.fc_w_2,
+                                          'fc_b_2': self.fc_b_2})
+            input()
         if not self.train_model:
             print('test_loss:', sum(self.loss_change) / len(self.loss_change), 'test_accuracy:',
                   sum(self.accuracy_change) / len(self.accuracy_change))
