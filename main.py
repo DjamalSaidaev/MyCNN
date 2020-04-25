@@ -2,13 +2,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt  # для построения графиков
-from PIL import Image  # для работы с изображениями
 import os  # для работы с файлами на диске
 import model  # книга с функциями
-import random
-import glob
-import cv2 as cv
-import time
 import make_data as md
 
 
@@ -16,6 +11,7 @@ class CNN:
     def __init__(self, train=True):
         self.train_model = train
 
+        self.classes = {'1': 'B', '2': 'P', '3': 'R', '4': 'S'}
         # параметры для первого слоя конволюции (начальные параметры будут инициализированы во время работы сети)
         # веса для дообучения сети будут подгружены из файла
         self.conv_w_1 = np.array([])
@@ -63,17 +59,17 @@ class CNN:
         (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
 
     def load_model(self, path):
-        self.conv_w_1 = np.load(path).item().get('conv_w_1')
-        self.conv_b_1 = np.load(path).item().get('conv_b_1')
+        self.conv_w_1 = np.load(path, allow_pickle=True).item().get('conv_w_1')
+        self.conv_b_1 = np.load(path, allow_pickle=True).item().get('conv_b_1')
 
-        self.conv_w_2 = np.load(path).item().get('conv_w_2')
-        self.conv_b_2 = np.load(path).item().get('conv_b_2')
+        self.conv_w_2 = np.load(path, allow_pickle=True).item().get('conv_w_2')
+        self.conv_b_2 = np.load(path, allow_pickle=True).item().get('conv_b_2')
 
-        self.fc_w_1 = np.load(path).item().get('fc_w_1')
-        self.fc_b_1 = np.load(path).item().get('fc_b_1')
+        self.fc_w_1 = np.load(path, allow_pickle=True).item().get('fc_w_1')
+        self.fc_b_1 = np.load(path, allow_pickle=True).item().get('fc_b_1')
 
-        self.fc_w_2 = np.load(path).item().get('fc_w_2')
-        self.fc_b_2 = np.load(path).item().get('fc_b_2')
+        self.fc_w_2 = np.load(path, allow_pickle=True).item().get('fc_w_2')
+        self.fc_b_2 = np.load(path, allow_pickle=True).item().get('fc_b_2')
         print('Модель загружена')
 
     def predict(self, path):
@@ -147,7 +143,7 @@ class CNN:
             act_fn=self.model_settings['fc_fn_2'],
             dir_npy=self.weight_dir
         )
-        return fc_y_2.argmax() + 1
+        return self.classes[str(fc_y_2.argmax() + 1)]
 
     def training(self, epochs=10):
         start_step = 0

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import time
 
 
 def shuffle_list(images_list, truth_list):
+    np.random.seed(time.time())
     list_storage = zip(images_list, truth_list)
     list_storage = list(list_storage)
     np.random.shuffle(list_storage)
