@@ -8,9 +8,7 @@ import make_data as md
 
 
 class CNN:
-    def __init__(self, train=True):
-        self.train_model = train
-
+    def __init__(self):
         self.classes = {'1': 'B', '2': 'P', '3': 'R', '4': 'S'}
         # параметры для первого слоя конволюции (начальные параметры будут инициализированы во время работы сети)
         # веса для дообучения сети будут подгружены из файла
@@ -59,17 +57,18 @@ class CNN:
         (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
 
     def load_model(self, path):
-        self.conv_w_1 = np.load(path, allow_pickle=True).item().get('conv_w_1')
-        self.conv_b_1 = np.load(path, allow_pickle=True).item().get('conv_b_1')
+        self.weight_dir = path
+        self.conv_w_1 = np.load(self.weight_dir, allow_pickle=True).item().get('conv_w_1')
+        self.conv_b_1 = np.load(self.weight_dir, allow_pickle=True).item().get('conv_b_1')
 
-        self.conv_w_2 = np.load(path, allow_pickle=True).item().get('conv_w_2')
-        self.conv_b_2 = np.load(path, allow_pickle=True).item().get('conv_b_2')
+        self.conv_w_2 = np.load(self.weight_dir, allow_pickle=True).item().get('conv_w_2')
+        self.conv_b_2 = np.load(self.weight_dir, allow_pickle=True).item().get('conv_b_2')
 
-        self.fc_w_1 = np.load(path, allow_pickle=True).item().get('fc_w_1')
-        self.fc_b_1 = np.load(path, allow_pickle=True).item().get('fc_b_1')
+        self.fc_w_1 = np.load(self.weight_dir, allow_pickle=True).item().get('fc_w_1')
+        self.fc_b_1 = np.load(self.weight_dir, allow_pickle=True).item().get('fc_b_1')
 
-        self.fc_w_2 = np.load(path, allow_pickle=True).item().get('fc_w_2')
-        self.fc_b_2 = np.load(path, allow_pickle=True).item().get('fc_b_2')
+        self.fc_w_2 = np.load(self.weight_dir, allow_pickle=True).item().get('fc_w_2')
+        self.fc_b_2 = np.load(self.weight_dir, allow_pickle=True).item().get('fc_b_2')
         print('Модель загружена')
 
     def predict(self, path):
@@ -145,7 +144,19 @@ class CNN:
         )
         return self.classes[str(fc_y_2.argmax() + 1)]
 
-    def training(self, epochs=10):
+    def save_model(self, path):
+        np.save(path, {'loss_change': self.loss_change,
+                                  'accuracy_change': self.accuracy_change,
+                                  'conv_w_1': self.conv_w_1,
+                                  'conv_b_1': self.conv_b_1,
+                                  'conv_w_2': self.conv_w_2,
+                                  'conv_b_2': self.conv_b_2,
+                                  'fc_w_1': self.fc_w_1,
+                                  'fc_b_1': self.fc_b_1,
+                                  'fc_w_2': self.fc_w_2,
+                                  'fc_b_2': self.fc_b_2})
+
+    def training(self, epochs=30):
         start_step = 0
         end_step = len(self.trainX)
         len_dataset = 50  # частота вывода информации об обучении
@@ -157,7 +168,8 @@ class CNN:
                 # извлечение изображения из хранилища
                 input_image = [self.trainX[step]]  # здесь лист, так как convolution_feed на
                 # вход принимает лист, состоящий из feature maps
-                y_true = self.trainY[step]
+                y_true = np.array([0 for _ in range(4)])
+                y_true[self.trainY[step] - 1] = 1
                 # прямое прохожение сети
                 # первый конволюционный слой
                 conv_y_1, self.conv_w_1, self.conv_b_1 = model.convolution_feed(
@@ -232,91 +244,80 @@ class CNN:
                 # сохранение значений loss и accuracy
                 self.loss_change.append(fc_error.sum())
                 self.accuracy_change.append(y_true.argmax() == fc_y_2.argmax())
+
                 # обратное прохожение по сети
-                if self.train_model:
-                    # backprop через loss-функцию
-                    dEdfc_y_2 = model.loss_fn(y_true, fc_y_2, feed=False)
-                    # backprop через второй слой fc-сети
-                    dEdfc_y_1, self.fc_w_2, self.fc_b_2 = model.fc_backpropagation(
-                        y_l_minus_1=fc_y_1,
-                        dEdy_l=dEdfc_y_2,
-                        y_l=fc_y_2,
-                        w_l=self.fc_w_2,
-                        b_l=self.fc_b_2,
-                        act_fn=self.model_settings['fc_fn_2'],
-                        alpha=self.model_settings['learning_rate']
-                    )
-                    # backprop через первый слой fc-сети
-                    dEdfc_y_0, self.fc_w_1, self.fc_b_1 = model.fc_backpropagation(
-                        y_l_minus_1=conv_y_2_vect,
-                        dEdy_l=dEdfc_y_1,
-                        y_l=fc_y_1,
-                        w_l=self.fc_w_1,
-                        b_l=self.fc_b_1,
-                        act_fn=self.model_settings['fc_fn_1'],
-                        alpha=self.model_settings['learning_rate']
-                    )
-                    # конвертация полученного вектора в feature maps
-                    dEdconv_y_2 = model.vector2matrix_tf(
-                        vector=dEdfc_y_0,
-                        matrix_shape=conv_y_2[0].shape  # размерность одной из матриц feature map
-                    )
-                    # backprop через второй слой конволюции
-                    dEdconv_y_1_mp, self.conv_w_2, self.conv_b_2 = model.convolution_backpropagation(
-                        y_l_minus_1=conv_y_1_mp,  # так как слой макспулинга!
-                        y_l=conv_y_2,
-                        w_l=self.conv_w_2,
-                        b_l=self.conv_b_2,
-                        dEdy_l=dEdconv_y_2,
-                        feature_maps=self.model_settings['conv_feature_2'],
-                        act_fn=self.model_settings['conv_fn_2'],
-                        alpha=self.model_settings['learning_rate'],
-                        conv_params={
-                            'convolution': self.model_settings['conv_conv_2'],
-                            'stride': self.model_settings['conv_stride_2'],
-                            'center_w_l': self.model_settings['conv_center_2']
-                        }
-                    )
-                    # backprop через слой макспулинга
-                    dEdconv_y_1 = model.maxpool_back(
-                        dEdy_l_mp=dEdconv_y_1_mp,
-                        y_l_mp_to_y_l=conv_y_1_mp_to_conv_y_1,
-                        y_l_shape=conv_y_1[0].shape
-                    )
-                    # backprop через первый слой конволюции
-                    dEdconv_y_0, self.conv_w_1, self.conv_b_1 = model.convolution_backpropagation(
-                        y_l_minus_1=input_image,
-                        y_l=conv_y_1,
-                        w_l=self.conv_w_1,
-                        b_l=self.conv_b_1,
-                        dEdy_l=dEdconv_y_1,
-                        feature_maps=self.model_settings['conv_feature_1'],
-                        act_fn=self.model_settings['conv_fn_1'],
-                        alpha=self.model_settings['learning_rate'],
-                        conv_params={
-                            'convolution': self.model_settings['conv_conv_1'],
-                            'stride': self.model_settings['conv_stride_1'],
-                            'center_w_l': self.model_settings['conv_center_1']
-                        }
-                    )
+                # backprop через loss-функцию
+                dEdfc_y_2 = model.loss_fn(y_true, fc_y_2, feed=False)
+                # backprop через второй слой fc-сети
+                dEdfc_y_1, self.fc_w_2, self.fc_b_2 = model.fc_backpropagation(
+                    y_l_minus_1=fc_y_1,
+                    dEdy_l=dEdfc_y_2,
+                    y_l=fc_y_2,
+                    w_l=self.fc_w_2,
+                    b_l=self.fc_b_2,
+                    act_fn=self.model_settings['fc_fn_2'],
+                    alpha=self.model_settings['learning_rate']
+                )
+                # backprop через первый слой fc-сети
+                dEdfc_y_0, self.fc_w_1, self.fc_b_1 = model.fc_backpropagation(
+                    y_l_minus_1=conv_y_2_vect,
+                    dEdy_l=dEdfc_y_1,
+                    y_l=fc_y_1,
+                    w_l=self.fc_w_1,
+                    b_l=self.fc_b_1,
+                    act_fn=self.model_settings['fc_fn_1'],
+                    alpha=self.model_settings['learning_rate']
+                )
+                # конвертация полученного вектора в feature maps
+                dEdconv_y_2 = model.vector2matrix_tf(
+                    vector=dEdfc_y_0,
+                    matrix_shape=conv_y_2[0].shape  # размерность одной из матриц feature map
+                )
+                # backprop через второй слой конволюции
+                dEdconv_y_1_mp, self.conv_w_2, self.conv_b_2 = model.convolution_backpropagation(
+                    y_l_minus_1=conv_y_1_mp,  # так как слой макспулинга!
+                    y_l=conv_y_2,
+                    w_l=self.conv_w_2,
+                    b_l=self.conv_b_2,
+                    dEdy_l=dEdconv_y_2,
+                    feature_maps=self.model_settings['conv_feature_2'],
+                    act_fn=self.model_settings['conv_fn_2'],
+                    alpha=self.model_settings['learning_rate'],
+                    conv_params={
+                        'convolution': self.model_settings['conv_conv_2'],
+                        'stride': self.model_settings['conv_stride_2'],
+                        'center_w_l': self.model_settings['conv_center_2']
+                    }
+                )
+                # backprop через слой макспулинга
+                dEdconv_y_1 = model.maxpool_back(
+                    dEdy_l_mp=dEdconv_y_1_mp,
+                    y_l_mp_to_y_l=conv_y_1_mp_to_conv_y_1,
+                    y_l_shape=conv_y_1[0].shape
+                )
+                # backprop через первый слой конволюции
+                dEdconv_y_0, self.conv_w_1, self.conv_b_1 = model.convolution_backpropagation(
+                    y_l_minus_1=input_image,
+                    y_l=conv_y_1,
+                    w_l=self.conv_w_1,
+                    b_l=self.conv_b_1,
+                    dEdy_l=dEdconv_y_1,
+                    feature_maps=self.model_settings['conv_feature_1'],
+                    act_fn=self.model_settings['conv_fn_1'],
+                    alpha=self.model_settings['learning_rate'],
+                    conv_params={
+                        'convolution': self.model_settings['conv_conv_1'],
+                        'stride': self.model_settings['conv_stride_1'],
+                        'center_w_l': self.model_settings['conv_center_1']
+                    }
+                )
                 # вывод результатов
                 print('эпоха: {} шаг: {} loss: {:.3f} accuracy: {:.3f}'.format(
                     epoch, step, sum(self.loss_change[-len_dataset:]) / len_dataset,
                     sum(self.accuracy_change[-len_dataset:]) / len_dataset))
                 # сохранение весов
-                if self.train_model:
-                    np.save(self.weight_dir, {'step': step,
-                                              'loss_change': self.loss_change,
-                                              'accuracy_change': self.accuracy_change,
-                                              'conv_w_1': self.conv_w_1,
-                                              'conv_b_1': self.conv_b_1,
-                                              'conv_w_2': self.conv_w_2,
-                                              'conv_b_2': self.conv_b_2,
-                                              'fc_w_1': self.fc_w_1,
-                                              'fc_b_1': self.fc_b_1,
-                                              'fc_w_2': self.fc_w_2,
-                                              'fc_b_2': self.fc_b_2})
                 model.shuffle_list(self.trainX, self.trainY)
+        self.save_model("cnn_weights.npy")
         if not self.train_model:
             print('test_loss:', sum(self.loss_change) / len(self.loss_change), 'test_accuracy:',
                   sum(self.accuracy_change) / len(self.accuracy_change))
@@ -324,10 +325,10 @@ class CNN:
 
 def main():
     network = CNN()
-    # network.load_data()
-    # network.training()
-    network.load_model("cnn_weights.npy")
-    print(network.predict("r.jpg"))
+    network.load_data()
+    network.training()
+    # network.load_model("weights.npy")
+    # print(network.predict("p.jpg"))
 
 
 if __name__ == "__main__":
