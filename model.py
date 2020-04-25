@@ -2,6 +2,30 @@
 
 import numpy as np
 import time
+import matplotlib.pyplot as plt  # для построения графиков
+
+
+def draw_history_of_training(path):
+    (loss, accuracy) = (np.load(path, allow_pickle=True).item().get('loss_change'),
+                        np.load(path, allow_pickle=True).item().get('accuracy_change'))
+    epo = np.load(path, allow_pickle=True).item().get('epochs')
+    len_tr = np.load(path, allow_pickle=True).item().get('len_train')
+
+    loss = [loss[i] for i in range(0, len(loss), len_tr)]
+    accuracy = [accuracy[i] for i in range(0, len(accuracy), len_tr)]
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=1, ncols=2,
+        figsize=(8, 4)
+    )
+    ax1.set_xlabel('$Epoch$')
+    ax1.set_ylabel('$Loss$')
+    ax1.plot(np.linspace(1, epo, epo), loss, c='r')
+
+    ax2.set_xlabel('$Epoch$')
+    ax2.set_ylabel('$Accuracy$')
+    ax2.plot(np.linspace(1, epo, epo), accuracy, c='orange')
+    plt.savefig("training.jpg")
+    plt.show()
 
 
 def shuffle_list(images_list, truth_list):
@@ -218,23 +242,6 @@ def fc_weights_init(shape, weights_name, dir_npy):
         weights_matrix = 2 * np.random.random(shape) - 1
         print('веса для', weights_name, 'созданы', weights_matrix.size)
     return weights_matrix
-
-
-def get_start_step(dir_npy):
-    try:
-        # к n-ому шагу прибавляем единицу, т.к. веса сохранились после прохождения backprop и, соответственно, полного завершения шага
-        start_step = np.load(dir_npy).item().get('step') + 1
-    except:
-        start_step = 0
-    return start_step
-
-
-def get_saved(list_name, dir_npy):
-    try:
-        list_save = np.load(dir_npy).item().get(list_name)
-    except:
-        list_save = []
-    return list_save
 
 
 def convolution_feed(y_l_minus_1, w_l, w_l_name, w_shape_l, b_l, b_l_name, feature_maps, act_fn, dir_npy, conv_params):

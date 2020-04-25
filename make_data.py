@@ -20,11 +20,76 @@ def train_test_split(x, y, percent):
     return np.array(trainx), np.array(testx), np.array(trainy), np.array(testy)
 
 
+def make_train_test(num):
+    data = []
+    labels = []
+    imagePaths = sorted(list(glob.glob("data/**/*.jpg", recursive=True)))
+    # цикл по изображениям
+    for i in range(num):
+        # загружаем изображение, меняем размер на 8x8 пикселей (без учёта соотношения сторон)
+        # добавляем в список
+        # переводим изображение в черно-белое
+        path = random.choice(imagePaths)
+        image = cv.imread(path)
+        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        gray = gaussian_blur(gray)
+        data.append(gray)
+
+        # извлекаем метку класса из пути к изображению и обновляем
+        # список меток
+        label = path.split(os.path.sep)[-2]
+        labels.append(int(label))
+    # масштабируем интенсивности пикселей в диапазон[0, 1]
+    data = np.array(data, dtype="float")
+    data = data.reshape(data.shape[0], 8, 8)
+    data /= 255.0
+    labels = np.array(labels, dtype="int")
+
+    # разбиваем данные на обучающую и тестовую выборки, используя 75% данных
+    # для обучения и оставшиеся 25% для тестирования
+    return train_test_split(data, labels, 0.25)
+
+
+def gaussian_blur(img):
+    kernel = np.array([[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]])
+    kernel = kernel / np.sum(kernel)
+    arraylist = []
+    for y in range(3):
+        temparray = np.copy(img)
+        temparray = np.roll(temparray, y - 1, axis=0)
+        for x in range(3):
+            temparray_X = np.copy(temparray)
+            temparray_X = np.roll(temparray_X, x - 1, axis=1)*kernel[y, x]
+            arraylist.append(temparray_X)
+
+    arraylist = np.array(arraylist)
+    arraylist_sum = np.sum(arraylist, axis=0)
+    return arraylist_sum
+
+
+def input_image_by_matrix():
+    print('Введите изображение (8x8) построчно:')
+    matrix = []
+    for _ in range(8):
+        temp = input().split()
+        temp = [int(t) for t in temp]
+        matrix.append(temp)
+    try:
+        matrix = np.array(matrix, dtype="float")
+        matrix = gaussian_blur(matrix)
+    except:
+        print('Неверный ввод')
+        return matrix
+    return matrix
+
+
 def load_image(str):
     image = cv.imread(str)
+    image = cv.resize(image, (8, 8))
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     gray = np.array(gray, dtype="float")
     gray /= 255.0
+    # gaussian = gaussian_blur(gray)
     return gray
 
 
@@ -32,7 +97,7 @@ def read_data_sets():
     # берём пути к изображениям и рандомно перемешиваем
     data = []
     labels = []
-    imagePaths = sorted(list(glob.glob("dataset/**/*.jpg", recursive=True)))
+    imagePaths = sorted(list(glob.glob("data/**/*.jpg", recursive=True)))
     random.shuffle(imagePaths)
     # цикл по изображениям
     for imagePath in imagePaths:

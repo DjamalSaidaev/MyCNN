@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import matplotlib.pyplot as plt  # для построения графиков
 import os  # для работы с файлами на диске
 import model  # книга с функциями
 import make_data as md
+import time
 
 
 class CNN:
@@ -27,11 +27,15 @@ class CNN:
         self.loss_change = []
         self.accuracy_change = []
 
-        self.weight_dir = os.path.join(os.path.dirname(__file__), 'cnn_weights.npy')
+        self.test_loss_change = []
+        self.test_accuracy_change = []
+
+        self.weight_dir = os.path.join(os.path.dirname(__file__), 'cnn_weights_new.npy')
         self.trainX = []
         self.testX = []
         self.trainY = []
         self.testY = []
+        self.epochs = None
         self.model_settings = {'learning_rate': 0.01,  # коэффициент обучения
                                'conv_shape_1': (2, 2),  # размер ядра свертки
                                'conv_shape_2': (3, 3),
@@ -53,8 +57,9 @@ class CNN:
                                'conv_center_2': (1, 1),
                                'maxpool_center_1': (0, 0)}
 
-    def load_data(self):
-        (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
+    def load_data(self, num):
+        # (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
+        (self.trainX, self.testX, self.trainY, self.testY) = md.make_train_test(num)
 
     def load_model(self, path):
         self.weight_dir = path
@@ -72,9 +77,12 @@ class CNN:
         print('Модель загружена')
 
     def predict(self, path):
-        img = md.load_image(path)
-        input_image = [img]  # здесь лист, так как convolution_feed на
-
+        if isinstance(path, str):
+            img = md.load_image(path)
+            input_image = [img]  # здесь лист, так как convolution_feed на
+        else:
+            img = path
+            input_image = [img]
         conv_y_1, self.conv_w_1, self.conv_b_1 = model.convolution_feed(
             y_l_minus_1=input_image,
             w_l=self.conv_w_1,
@@ -142,24 +150,123 @@ class CNN:
             act_fn=self.model_settings['fc_fn_2'],
             dir_npy=self.weight_dir
         )
-        return self.classes[str(fc_y_2.argmax() + 1)]
+        return [(self.classes[i], fc_y_2[0][int(i)-1]) for i in self.classes.keys()]
 
     def save_model(self, path):
-        np.save(path, {'loss_change': self.loss_change,
-                                  'accuracy_change': self.accuracy_change,
-                                  'conv_w_1': self.conv_w_1,
-                                  'conv_b_1': self.conv_b_1,
-                                  'conv_w_2': self.conv_w_2,
-                                  'conv_b_2': self.conv_b_2,
-                                  'fc_w_1': self.fc_w_1,
-                                  'fc_b_1': self.fc_b_1,
-                                  'fc_w_2': self.fc_w_2,
-                                  'fc_b_2': self.fc_b_2})
+        np.save(path, {'epochs': self.epochs,
+                       'len_train': len(self.trainX),
+                       'test_loss': self.test_loss_change,
+                       'test_accuracy': self.test_accuracy_change,
+                       'loss_change': self.loss_change,
+                       'accuracy_change': self.accuracy_change,
+                       'conv_w_1': self.conv_w_1,
+                       'conv_b_1': self.conv_b_1,
+                       'conv_w_2': self.conv_w_2,
+                       'conv_b_2': self.conv_b_2,
+                       'fc_w_1': self.fc_w_1,
+                       'fc_b_1': self.fc_b_1,
+                       'fc_w_2': self.fc_w_2,
+                       'fc_b_2': self.fc_b_2})
 
-    def training(self, epochs=30):
+    def testing(self):
+        cur_time = time.time()
+        start_step = 0
+        end_step = len(self.testX)
+        self.test_loss_change = []
+        self.test_accuracy_change = []
+
+        for step in range(start_step, end_step):
+            # извлечение изображения из хранилища
+            input_image = [self.testX[step]]  # здесь лист, так как convolution_feed на
+            # вход принимает лист, состоящий из feature maps
+            y_true = np.array([0 for _ in range(4)])
+            y_true[self.testY[step] - 1] = 1
+            # прямое прохожение сети
+            # первый конволюционный слой
+            conv_y_1, self.conv_w_1, self.conv_b_1 = model.convolution_feed(
+                y_l_minus_1=input_image,
+                w_l=self.conv_w_1,
+                w_l_name='conv_w_1',  # для подгрузки весов из файла
+                w_shape_l=self.model_settings['conv_shape_1'],
+                b_l=self.conv_b_1,
+                b_l_name='conv_b_1',
+                feature_maps=self.model_settings['conv_feature_1'],
+                act_fn=self.model_settings['conv_fn_1'],
+                dir_npy=self.weight_dir,
+                conv_params={
+                    'convolution': self.model_settings['conv_conv_1'],
+                    'stride': self.model_settings['conv_stride_1'],
+                    'center_w_l': self.model_settings['conv_center_1']
+                }
+            )
+            # слой макспулинга
+            conv_y_1_mp, conv_y_1_mp_to_conv_y_1 = model.maxpool_feed(
+                y_l=conv_y_1,
+                conv_params={
+                    'window_shape': self.model_settings['maxpool_shape_1'],
+                    'convolution': self.model_settings['maxpool_conv_1'],
+                    'stride': self.model_settings['maxpool_stride_1'],
+                    'center_window': self.model_settings['maxpool_center_1']
+                }
+            )
+            # второй конволюционный слой
+            conv_y_2, self.conv_w_2, self.conv_b_2 = model.convolution_feed(
+                y_l_minus_1=conv_y_1_mp,
+                w_l=self.conv_w_2,
+                w_l_name='conv_w_2',
+                w_shape_l=self.model_settings['conv_shape_2'],
+                b_l=self.conv_b_2,
+                b_l_name='conv_b_2',
+                feature_maps=self.model_settings['conv_feature_2'],
+                act_fn=self.model_settings['conv_fn_2'],
+                dir_npy=self.weight_dir,
+                conv_params={
+                    'convolution': self.model_settings['conv_conv_2'],
+                    'stride': self.model_settings['conv_stride_2'],
+                    'center_w_l': self.model_settings['conv_center_2']
+                }
+            )
+            # конвертация полученных feature maps в вектор
+            conv_y_2_vect = model.matrix2vector_tf(conv_y_2)
+            # первый слой fully connected сети
+            fc_y_1, self.fc_w_1, self.fc_b_1 = model.fc_multiplication(
+                y_l_minus_1=conv_y_2_vect,
+                w_l=self.fc_w_1,
+                w_l_name='fc_w_1',
+                b_l=self.fc_b_1,
+                b_l_name='fc_b_1',
+                neurons=self.model_settings['fc_neurons_1'],
+                act_fn=self.model_settings['fc_fn_1'],
+                dir_npy=self.weight_dir
+            )
+            # второй слой fully connected сети
+            fc_y_2, self.fc_w_2, self.fc_b_2 = model.fc_multiplication(
+                y_l_minus_1=fc_y_1,
+                w_l=self.fc_w_2,
+                w_l_name='fc_w_2',
+                b_l=self.fc_b_2,
+                b_l_name='fc_b_2',
+                neurons=4,  # количество нейронов на выходе моледи равно числу классов
+                act_fn=self.model_settings['fc_fn_2'],
+                dir_npy=self.weight_dir
+            )
+            # ошибка модели
+            fc_error = model.loss_fn(y_true, fc_y_2, feed=True)
+            # сохранение значений loss и accuracy
+            self.test_loss_change.append(fc_error.sum())
+            self.test_accuracy_change.append(y_true.argmax() == fc_y_2.argmax())
+        print('Тестирование модели\n loss: {:.3f} accuracy: {:.3f}'.format(
+            sum(self.test_loss_change) / len(self.test_loss_change),
+            sum(self.test_accuracy_change) / len(self.test_accuracy_change)))
+        cur_time = time.time() - cur_time
+        return cur_time
+
+    def training(self, epochs=30, save="train.npy"):
+        cur_time = time.time()
+        self.weight_dir = os.path.join(os.path.dirname(__file__), save)
+        self.epochs = epochs
         start_step = 0
         end_step = len(self.trainX)
-        len_dataset = 50  # частота вывода информации об обучении
 
         self.loss_change = []
         self.accuracy_change = []
@@ -235,7 +342,7 @@ class CNN:
                     w_l_name='fc_w_2',
                     b_l=self.fc_b_2,
                     b_l_name='fc_b_2',
-                    neurons=np.max(self.trainY),  # количество нейронов на выходе моледи равно числу классов
+                    neurons=4,  # количество нейронов на выходе моледи равно числу классов
                     act_fn=self.model_settings['fc_fn_2'],
                     dir_npy=self.weight_dir
                 )
@@ -313,22 +420,29 @@ class CNN:
                 )
                 # вывод результатов
                 print('эпоха: {} шаг: {} loss: {:.3f} accuracy: {:.3f}'.format(
-                    epoch, step, sum(self.loss_change[-len_dataset:]) / len_dataset,
-                    sum(self.accuracy_change[-len_dataset:]) / len_dataset))
-                # сохранение весов
+                    epoch, step, sum(self.loss_change) / len(self.loss_change),
+                    sum(self.accuracy_change) / len(self.accuracy_change)))
+                # перемешивание тренировочных данных
                 model.shuffle_list(self.trainX, self.trainY)
-        self.save_model("cnn_weights.npy")
-        if not self.train_model:
-            print('test_loss:', sum(self.loss_change) / len(self.loss_change), 'test_accuracy:',
-                  sum(self.accuracy_change) / len(self.accuracy_change))
+        # тестирование и сохранение модели
+        cur_time = time.time() - cur_time
+        self.save_model(self.weight_dir)
+        return cur_time, self.testing()
 
 
 def main():
     network = CNN()
-    network.load_data()
-    network.training()
-    # network.load_model("weights.npy")
-    # print(network.predict("p.jpg"))
+    train = False
+    if train:
+        network.load_data(1000)
+        train_time, test_time = network.training(epochs=4, save="cnn_weights_epam.npy")
+        print('Время на обучение: {:.2f} мин. \n'
+              'Время на тестирование модели: {:.2f} мин'.format(train_time/60., test_time/60.))
+        model.draw_history_of_training("cnn_weights_epam.npy")
+    else:
+        network.load_model("cnn_weights_epam.npy")
+        for obj in network.predict(md.input_image_by_matrix()):
+            print("{}: {:.3f}".format(obj[0], obj[1]))
 
 
 if __name__ == "__main__":
