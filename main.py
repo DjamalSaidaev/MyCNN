@@ -74,6 +74,7 @@ class CNN:
 
         self.fc_w_2 = np.load(path).item().get('fc_w_2')
         self.fc_b_2 = np.load(path).item().get('fc_b_2')
+        print('Модель загружена')
 
     def predict(self, path):
         img = md.load_image(path)
@@ -326,10 +327,11 @@ class CNN:
 
 
 def main():
-     network = CNN()
-     # network.load_data()
-     # network.training()
-     print(network.predict("r.jpg"))
+    network = CNN()
+    # network.load_data()
+    # network.training()
+    network.load_model("cnn_weights.npy")
+    print(network.predict("r.jpg"))
 
 
 if __name__ == "__main__":
