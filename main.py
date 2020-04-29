@@ -3,7 +3,6 @@
 import numpy as np
 import os  # для работы с файлами на диске
 import model  # книга с функциями
-import make_data as md
 import time
 
 
@@ -30,7 +29,7 @@ class CNN:
         self.test_loss_change = []
         self.test_accuracy_change = []
 
-        self.weight_dir = os.path.join(os.path.dirname(__file__), 'cnn_weights_new.npy')
+        self.weight_dir = None
         self.trainX = []
         self.testX = []
         self.trainY = []
@@ -57,9 +56,8 @@ class CNN:
                                'conv_center_2': (1, 1),
                                'maxpool_center_1': (0, 0)}
 
-    def load_data(self, num):
-        # (self.trainX, self.testX, self.trainY, self.testY) = md.read_data_sets()
-        (self.trainX, self.testX, self.trainY, self.testY) = md.make_train_test(num)
+    def load_data_from_file(self, file):
+        (self.trainX, self.testX, self.trainY, self.testY) = np.load(file, allow_pickle=True).item().get('data')
 
     def load_model(self, path):
         self.weight_dir = path
@@ -76,13 +74,40 @@ class CNN:
         self.fc_b_2 = np.load(self.weight_dir, allow_pickle=True).item().get('fc_b_2')
         print('Модель загружена')
 
+    def gaussian_blur(self, img):
+        kernel = np.array([[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]])
+        kernel = kernel / np.sum(kernel)
+        arraylist = []
+        for y in range(3):
+            temparray = np.copy(img)
+            temparray = np.roll(temparray, y - 1, axis=0)
+            for x in range(3):
+                temparray_X = np.copy(temparray)
+                temparray_X = np.roll(temparray_X, x - 1, axis=1) * kernel[y, x]
+                arraylist.append(temparray_X)
+
+        arraylist = np.array(arraylist)
+        arraylist_sum = np.sum(arraylist, axis=0)
+        return arraylist_sum
+
+    def input_image_by_matrix(self):
+        print('Введите изображение (8x8) построчно:')
+        matrix = []
+        for _ in range(8):
+            temp = input().split()
+            temp = [int(t) for t in temp]
+            matrix.append(temp)
+        try:
+            matrix = np.array(matrix, dtype="float")
+            matrix = self.gaussian_blur(matrix)
+        except:
+            print('Неверный ввод')
+            return matrix
+        return matrix
+
     def predict(self, path):
-        if isinstance(path, str):
-            img = md.load_image(path)
-            input_image = [img]  # здесь лист, так как convolution_feed на
-        else:
-            img = path
-            input_image = [img]
+        img = path
+        input_image = [img]
         conv_y_1, self.conv_w_1, self.conv_b_1 = model.convolution_feed(
             y_l_minus_1=input_image,
             w_l=self.conv_w_1,
@@ -433,15 +458,17 @@ class CNN:
 def main():
     network = CNN()
     train = False
+    weight_dir = os.path.join(os.path.dirname(__file__), "cnn_weights_epam.npy")
+    data_dir = os.path.join(os.path.dirname(__file__), "train_test_data.npy")
     if train:
-        network.load_data(1000)
-        train_time, test_time = network.training(epochs=4, save="cnn_weights_epam.npy")
+        network.load_data_from_file(data_dir)
+        train_time, test_time = network.training(epochs=4, save=weight_dir)
         print('Время на обучение: {:.2f} мин. \n'
               'Время на тестирование модели: {:.2f} мин'.format(train_time/60., test_time/60.))
-        model.draw_history_of_training("cnn_weights_epam.npy")
+        model.draw_history_of_training(weight_dir)
     else:
-        network.load_model("cnn_weights_epam.npy")
-        for obj in network.predict(md.input_image_by_matrix()):
+        network.load_model(weight_dir)
+        for obj in network.predict(network.input_image_by_matrix()):
             print("{}: {:.3f}".format(obj[0], obj[1]))
 
 

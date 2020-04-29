@@ -17,7 +17,9 @@ def train_test_split(x, y, percent):
     trainy = y[:len(y) - num]
     testx = x[len(x) - num:]
     testy = y[len(y) - num:]
-    return np.array(trainx), np.array(testx), np.array(trainy), np.array(testy)
+    to_file = (np.array(trainx), np.array(testx), np.array(trainy), np.array(testy))
+    np.save("train_test_data.npy", {'data': to_file})
+    return to_file
 
 
 def make_train_test(num):
@@ -49,7 +51,6 @@ def make_train_test(num):
     # для обучения и оставшиеся 25% для тестирования
     return train_test_split(data, labels, 0.25)
 
-
 def gaussian_blur(img):
     kernel = np.array([[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]])
     kernel = kernel / np.sum(kernel)
@@ -59,29 +60,12 @@ def gaussian_blur(img):
         temparray = np.roll(temparray, y - 1, axis=0)
         for x in range(3):
             temparray_X = np.copy(temparray)
-            temparray_X = np.roll(temparray_X, x - 1, axis=1)*kernel[y, x]
+            temparray_X = np.roll(temparray_X, x - 1, axis=1) * kernel[y, x]
             arraylist.append(temparray_X)
 
     arraylist = np.array(arraylist)
     arraylist_sum = np.sum(arraylist, axis=0)
     return arraylist_sum
-
-
-def input_image_by_matrix():
-    print('Введите изображение (8x8) построчно:')
-    matrix = []
-    for _ in range(8):
-        temp = input().split()
-        temp = [int(t) for t in temp]
-        matrix.append(temp)
-    try:
-        matrix = np.array(matrix, dtype="float")
-        matrix = gaussian_blur(matrix)
-    except:
-        print('Неверный ввод')
-        return matrix
-    return matrix
-
 
 def load_image(str):
     image = cv.imread(str)
