@@ -280,7 +280,7 @@ class CNN:
             # сохранение значений loss и accuracy
             self.test_loss_change.append(fc_error.sum())
             self.test_accuracy_change.append(y_true.argmax() == fc_y_2.argmax())
-        print('Тестирование модели\n loss: {:.3f} accuracy: {:.3f}'.format(
+        print('Тестирование модели\n loss: {} accuracy: {}'.format(
             sum(self.test_loss_change) / len(self.test_loss_change),
             sum(self.test_accuracy_change) / len(self.test_accuracy_change)))
         cur_time = time.time() - cur_time
@@ -457,7 +457,7 @@ class CNN:
 
 def main():
     network = CNN()
-    train = False
+    train = True
     weight_dir = os.path.join(os.path.dirname(__file__), "cnn_weights_epam.npy")
     data_dir = os.path.join(os.path.dirname(__file__), "train_test_data.npy")
     if train:
@@ -469,7 +469,7 @@ def main():
     else:
         network.load_model(weight_dir)
         for obj in network.predict(network.input_image_by_matrix()):
-            print("{}: {:.3f}".format(obj[0], obj[1]))
+            print("{}: {}".format(obj[0], obj[1]))
 
 
 if __name__ == "__main__":
