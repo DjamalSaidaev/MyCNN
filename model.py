@@ -11,8 +11,8 @@ def draw_history_of_training(path):
     epo = np.load(path, allow_pickle=True).item().get('epochs')
     len_tr = np.load(path, allow_pickle=True).item().get('len_train')
 
-    loss = [loss[i] for i in range(0, len(loss), len_tr)]
-    accuracy = [accuracy[i] for i in range(0, len(accuracy), len_tr)]
+    loss = [sum(loss[i:i+len_tr])/len_tr for i in range(0, len(loss), len_tr)]
+    accuracy = [sum(accuracy[i:i+len_tr])/len_tr for i in range(0, len(accuracy), len_tr)]
     fig, (ax1, ax2) = plt.subplots(
         nrows=1, ncols=2,
         figsize=(8, 4)

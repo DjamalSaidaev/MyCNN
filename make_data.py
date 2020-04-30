@@ -25,13 +25,28 @@ def train_test_split(x, y, percent):
 def make_train_test(num):
     data = []
     labels = []
-    imagePaths = sorted(list(glob.glob("data/**/*.jpg", recursive=True)))
+    imagePathsMain = sorted(list(glob.glob("data/[1, 2, 3, 4]/*.jpg", recursive=True)))
+    imagePathsTemp = sorted(list(glob.glob("data\\5\\*.jpg", recursive=True)))
     # цикл по изображениям
-    for i in range(num):
+    for i in range(num // 2):
         # загружаем изображение, меняем размер на 8x8 пикселей (без учёта соотношения сторон)
         # добавляем в список
         # переводим изображение в черно-белое
-        path = random.choice(imagePaths)
+        path = random.choice(imagePathsMain)
+        image = cv.imread(path)
+        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        gray = gaussian_blur(gray)
+        data.append(gray)
+
+        # извлекаем метку класса из пути к изображению и обновляем
+        # список меток
+        label = path.split(os.path.sep)[-2]
+        labels.append(int(label))
+    for i in range(num // 2):
+        # загружаем изображение, меняем размер на 8x8 пикселей (без учёта соотношения сторон)
+        # добавляем в список
+        # переводим изображение в черно-белое
+        path = random.choice(imagePathsTemp)
         image = cv.imread(path)
         gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
         gray = gaussian_blur(gray)
@@ -107,4 +122,4 @@ def read_data_sets():
     return train_test_split(data, labels, 0.25)
 
 
-# make_train_test(1000)
+make_train_test(2000)

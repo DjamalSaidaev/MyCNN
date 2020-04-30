@@ -8,7 +8,7 @@ import time
 
 class CNN:
     def __init__(self):
-        self.classes = {'1': 'B', '2': 'P', '3': 'R', '4': 'S'}
+        self.classes = {'1': 'B', '2': 'P', '3': 'R', '4': 'S', '5': 'Ни на что не похоже'}
         # параметры для первого слоя конволюции (начальные параметры будут инициализированы во время работы сети)
         # веса для дообучения сети будут подгружены из файла
         self.conv_w_1 = np.array([])
@@ -171,7 +171,7 @@ class CNN:
             w_l_name='fc_w_2',
             b_l=self.fc_b_2,
             b_l_name='fc_b_2',
-            neurons=4,  # количество нейронов на выходе моледи равно числу классов
+            neurons=5,  # количество нейронов на выходе моледи равно числу классов
             act_fn=self.model_settings['fc_fn_2'],
             dir_npy=self.weight_dir
         )
@@ -204,7 +204,7 @@ class CNN:
             # извлечение изображения из хранилища
             input_image = [self.testX[step]]  # здесь лист, так как convolution_feed на
             # вход принимает лист, состоящий из feature maps
-            y_true = np.array([0 for _ in range(4)])
+            y_true = np.array([0 for _ in range(5)])
             y_true[self.testY[step] - 1] = 1
             # прямое прохожение сети
             # первый конволюционный слой
@@ -271,7 +271,7 @@ class CNN:
                 w_l_name='fc_w_2',
                 b_l=self.fc_b_2,
                 b_l_name='fc_b_2',
-                neurons=4,  # количество нейронов на выходе моледи равно числу классов
+                neurons=5,  # количество нейронов на выходе моледи равно числу классов
                 act_fn=self.model_settings['fc_fn_2'],
                 dir_npy=self.weight_dir
             )
@@ -300,7 +300,7 @@ class CNN:
                 # извлечение изображения из хранилища
                 input_image = [self.trainX[step]]  # здесь лист, так как convolution_feed на
                 # вход принимает лист, состоящий из feature maps
-                y_true = np.array([0 for _ in range(4)])
+                y_true = np.array([0 for _ in range(5)])
                 y_true[self.trainY[step] - 1] = 1
                 # прямое прохожение сети
                 # первый конволюционный слой
@@ -367,7 +367,7 @@ class CNN:
                     w_l_name='fc_w_2',
                     b_l=self.fc_b_2,
                     b_l_name='fc_b_2',
-                    neurons=4,  # количество нейронов на выходе моледи равно числу классов
+                    neurons=5,  # количество нейронов на выходе моледи равно числу классов
                     act_fn=self.model_settings['fc_fn_2'],
                     dir_npy=self.weight_dir
                 )
@@ -457,7 +457,7 @@ class CNN:
 
 def main():
     network = CNN()
-    train = True
+    train = False
     weight_dir = os.path.join(os.path.dirname(__file__), "cnn_weights_epam.npy")
     data_dir = os.path.join(os.path.dirname(__file__), "train_test_data.npy")
     if train:
@@ -468,6 +468,7 @@ def main():
         model.draw_history_of_training(weight_dir)
     else:
         network.load_model(weight_dir)
+        model.draw_history_of_training(weight_dir)
         for obj in network.predict(network.input_image_by_matrix()):
             print("{}: {}".format(obj[0], obj[1]))
 
