@@ -23,12 +23,13 @@ def train_test_split(x, y, percent):
 
 
 def make_train_test(num):
+    np.random.seed(int(time.time()))
     data = []
     labels = []
     imagePathsMain = sorted(list(glob.glob("data/[1, 2, 3, 4]/*.jpg", recursive=True)))
     imagePathsTemp = sorted(list(glob.glob("data\\5\\*.jpg", recursive=True)))
     # цикл по изображениям
-    for i in range(num // 2):
+    for i in range(num):
         # загружаем изображение, меняем размер на 8x8 пикселей (без учёта соотношения сторон)
         # добавляем в список
         # переводим изображение в черно-белое
@@ -42,26 +43,29 @@ def make_train_test(num):
         # список меток
         label = path.split(os.path.sep)[-2]
         labels.append(int(label))
-    for i in range(num // 2):
+    for i in range(4):
         # загружаем изображение, меняем размер на 8x8 пикселей (без учёта соотношения сторон)
         # добавляем в список
         # переводим изображение в черно-белое
-        path = random.choice(imagePathsTemp)
-        image = cv.imread(path)
-        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        gray = gaussian_blur(gray)
-        data.append(gray)
+        for path in imagePathsTemp:
+            image = cv.imread(path)
+            gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+            gray = gaussian_blur(gray)
+            data.append(gray)
 
-        # извлекаем метку класса из пути к изображению и обновляем
-        # список меток
-        label = path.split(os.path.sep)[-2]
-        labels.append(int(label))
+            # извлекаем метку класса из пути к изображению и обновляем
+            # список меток
+            label = path.split(os.path.sep)[-2]
+            labels.append(int(label))
     # масштабируем интенсивности пикселей в диапазон[0, 1]
     data = np.array(data, dtype="float")
     data = data.reshape(data.shape[0], 8, 8)
     data /= 255.0
     labels = np.array(labels, dtype="int")
-
+    list_storage = zip(data, labels)
+    list_storage = list(list_storage)
+    np.random.shuffle(list_storage)
+    data, labels = zip(*list_storage)
     # разбиваем данные на обучающую и тестовую выборки, используя 75% данных
     # для обучения и оставшиеся 25% для тестирования
     return train_test_split(data, labels, 0.25)
@@ -122,4 +126,4 @@ def read_data_sets():
     return train_test_split(data, labels, 0.25)
 
 
-make_train_test(2000)
+make_train_test(1000)

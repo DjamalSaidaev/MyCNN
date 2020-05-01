@@ -462,13 +462,12 @@ def main():
     data_dir = os.path.join(os.path.dirname(__file__), "train_test_data.npy")
     if train:
         network.load_data_from_file(data_dir)
-        train_time, test_time = network.training(epochs=4, save=weight_dir)
+        train_time, test_time = network.training(epochs=10, save=weight_dir)
         print('Время на обучение: {:.2f} мин. \n'
               'Время на тестирование модели: {:.2f} мин'.format(train_time/60., test_time/60.))
         model.draw_history_of_training(weight_dir)
     else:
         network.load_model(weight_dir)
-        model.draw_history_of_training(weight_dir)
         for obj in network.predict(network.input_image_by_matrix()):
             print("{}: {}".format(obj[0], obj[1]))
 
