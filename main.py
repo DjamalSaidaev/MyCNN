@@ -175,6 +175,7 @@ class CNN:
             act_fn=self.model_settings['fc_fn_2'],
             dir_npy=self.weight_dir
         )
+        print('Вероятность совпадения с образцами:')
         return [(self.classes[i], fc_y_2[0][int(i)-1]) for i in self.classes.keys()]
 
     def save_model(self, path):
