@@ -13,12 +13,12 @@ random.seed(time.time())
 
 def train_test_split(x, y, percent):
     num = int(percent * len(x))
-    trainx = x[:len(x) - num]
-    trainy = y[:len(y) - num]
-    testx = x[len(x) - num:]
-    testy = y[len(y) - num:]
+    trainx = x[: len(x) - num]
+    trainy = y[: len(y) - num]
+    testx = x[len(x) - num :]
+    testy = y[len(y) - num :]
     to_file = (np.array(trainx), np.array(testx), np.array(trainy), np.array(testy))
-    np.save("train_test_data.npy", {'data': to_file})
+    np.save("train_test_data.npy", {"data": to_file})
     return to_file
 
 
@@ -70,6 +70,7 @@ def make_train_test(num):
     # для обучения и оставшиеся 25% для тестирования
     return train_test_split(data, labels, 0.25)
 
+
 def gaussian_blur(img):
     kernel = np.array([[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]])
     kernel = kernel / np.sum(kernel)
@@ -85,6 +86,7 @@ def gaussian_blur(img):
     arraylist = np.array(arraylist)
     arraylist_sum = np.sum(arraylist, axis=0)
     return arraylist_sum
+
 
 def load_image(str):
     image = cv.imread(str)
